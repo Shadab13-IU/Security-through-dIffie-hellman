@@ -4,6 +4,7 @@
  */
 package securitythroughdiffiehellman;
 import java.math.BigInteger;
+import java.util.Scanner;
 
 
 /**
@@ -12,53 +13,68 @@ import java.math.BigInteger;
  */
 public class DiffieHellmanDemo {
     public static void main(String[] args){
-        System.out.println("=== DAY 1: Diffie-Hellman Key Exchange Test ===\n");
+       System.out.println("=== DAY 1: Diffie-Hellman Key Exchange Test ===\n");
+       System.out.println("🔒 Testing different prime sizes for security\n");
+       Scanner scanner=new Scanner(System.in); 
+        // Let user choose prime size
+        System.out.println("Choose prime size for testing:");
+        System.out.println("1 - Small (8-bit) - WEAK SECURITY");
+        System.out.println("2 - Medium (16-bit) - BASIC SECURITY"); 
+        System.out.println("3 - Large (64-bit) - STRONG SECURITY");
+        System.out.print("Enter choice (1-3): ");
         
-        // Step 1: Setup - Choose a SMALL prime and generator for testing
-        // Using small numbers makes it easier to see what's happening
-        BigInteger prime = new BigInteger("23");    // A small prime number
-        BigInteger generator = new BigInteger("5"); // A generator for this prime
+        int choice = scanner.nextInt();
+        BigInteger prime;
+        String securityLevel;
         
-        System.out.println("Public Parameters (Everyone knows these):");
-        System.out.println("Prime (p): " + prime);
-        System.out.println("Generator (g): " + generator);
+        switch(choice) {
+            case 1:
+                prime = new BigInteger("251"); // Small 8-bit prime
+                securityLevel = "WEAK";
+                break;
+            case 2:
+                prime = new BigInteger("65521"); // Medium 16-bit prime  
+                securityLevel = "BASIC";
+                break;
+            case 3:
+                prime = new BigInteger("170141183460469231731687303715884105727"); // Large prime
+                securityLevel = "STRONG";
+                break;
+            default:
+                prime = new BigInteger("23");
+                securityLevel = "DEMO";
+        }
+        
+        BigInteger generator = new BigInteger("5");
+        
+        System.out.println("\n=== TESTING " + securityLevel + " SECURITY ===");
+        System.out.println("Prime size: " + prime.bitLength() + " bits");
         System.out.println();
-        
-        
-        User alice=new User(prime,generator);
-        User bob=new User(prime,generator);
-        
-        System.out.println("=== ALICE'S SIDE ===");
+
+        // Create participants
+        User alice = new User(prime, generator);
+        User bob = new User(prime, generator);
+        Eavesdropper mallory = new Eavesdropper("Mallory the Hacker");
+
+        // Key generation and exchange
         alice.generatePublicKey();
-        System.out.println();
-        
-        
-        System.out.println("=== BOB'S SIDE ===");
         bob.generatePublicKey();
-        System.out.println();
-        
-        
-        System.out.println("=== KEY EXCHANGE ===");
-        System.out.println("Alice sends her public key to Bob");
-        System.out.println("Bob sends his public key to Alice");
-        System.out.println();
-        
+        mallory.interceptPublicInfo(prime, generator, alice.getPublicKey(), bob.getPublicKey());
+
+        // Legitimate exchange
         alice.calculateSharedSecret(bob.getPublicKey());
         bob.calculateSharedSecret(alice.getPublicKey());
+
+        // Attack attempt
+        mallory.attemptToBreakKey();
+
+        // Results
+        System.out.println("\n=== FINAL RESULTS ===");
+        System.out.println("Alice and Bob have the same secret: " + 
+            alice.getSharedSecret().equals(bob.getSharedSecret()));
         
-        System.out.println("=== RESULTS ===");
-        System.out.println("Alice's Shared Secret: " + alice.getSharedSecret());
-        System.out.println("Bob's Shared Secret: " + bob.getSharedSecret());
-        System.out.println();
+        mallory.reportResults(alice.getSharedSecret());
         
-        // Step 5: Verify they are the same
-        if (alice.getSharedSecret().equals(bob.getSharedSecret())) {
-            System.out.println("✅ SUCCESS! Alice and Bob have the same shared secret!");
-            System.out.println("The key exchange worked perfectly!");
-        } else {
-            System.out.println("❌ FAILED! Shared secrets don't match.");
-            System.out.println("Check your calculations.");
-        }
+        scanner.close();
     }
-    
 }
